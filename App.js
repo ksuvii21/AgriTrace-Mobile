@@ -23,6 +23,9 @@ import AppNavigator from "./src/navigation/AppNavigator";
 import {
   AuthProvider,
 } from "./src/context/AuthContext";
+import {
+  LanguageProvider,
+} from "./src/context/LanguageContext";
 
 export default function App() {
   const [interLoaded] =
@@ -48,12 +51,14 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <StatusBar
-        style="dark"
-      />
+    <LanguageProvider>
+      <AuthProvider>
+        <StatusBar
+          style="dark"
+        />
 
-      <AppNavigator />
-    </AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

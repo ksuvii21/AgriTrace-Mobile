@@ -17,10 +17,13 @@ import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../../constants/colors";
 import Button from "../../components/common/Button";
 import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function LoginScreen({
   navigation,
 }) {
+  const { t } = useLanguage();
+
   const {
     login,
     resetPassword,
@@ -46,8 +49,8 @@ export default function LoginScreen({
       !password
     ) {
       Alert.alert(
-        "Missing information",
-        "Enter your email and password."
+        t("login_missing_title"),
+        t("login_missing_body")
       );
 
       return;
@@ -70,9 +73,9 @@ export default function LoginScreen({
       );
     } catch (error) {
       Alert.alert(
-        "Login failed",
+        t("login_failed_title"),
         error?.message ||
-          "Unable to login."
+          t("login_failed_default")
       );
     } finally {
       setLoading(false);
@@ -82,8 +85,8 @@ export default function LoginScreen({
   async function handleReset() {
     if (!email.trim()) {
       Alert.alert(
-        "Enter email",
-        "Enter your email address first."
+        t("login_enter_email_title"),
+        t("login_enter_email_body")
       );
 
       return;
@@ -95,14 +98,14 @@ export default function LoginScreen({
       );
 
       Alert.alert(
-        "Reset email sent",
-        "Check your email for the Firebase password-reset link."
+        t("login_reset_sent_title"),
+        t("login_reset_sent_body")
       );
     } catch (error) {
       Alert.alert(
-        "Unable to reset password",
+        t("login_reset_failed_title"),
         error?.message ||
-          "Please try again."
+          t("login_reset_failed_default")
       );
     }
   }
@@ -137,19 +140,18 @@ export default function LoginScreen({
         </LinearGradient>
 
         <Text style={styles.title}>
-          Welcome Back
+          {t("login_welcome_back")}
         </Text>
 
         <Text
           style={styles.subtitle}
         >
-          Sign in to continue
-          tracking your shipments.
+          {t("login_subtitle")}
         </Text>
 
         <View style={styles.form}>
           <Field
-            label="Email"
+            label={t("login_field_email")}
             icon="mail-outline"
           >
             <TextInput
@@ -169,7 +171,7 @@ export default function LoginScreen({
           </Field>
 
           <Field
-            label="Password"
+            label={t("login_field_password")}
             icon="lock-closed-outline"
           >
             <TextInput
@@ -219,12 +221,12 @@ export default function LoginScreen({
             <Text
               style={styles.link}
             >
-              Forgot Password
+              {t("login_forgot_password")}
             </Text>
           </TouchableOpacity>
 
           <Button
-            title="Login"
+            title={t("login_button")}
             onPress={handleLogin}
             loading={loading}
           />
@@ -238,8 +240,7 @@ export default function LoginScreen({
           <Text
             style={styles.muted}
           >
-            Don't have an
-            account?{" "}
+            {t("login_no_account")}
           </Text>
 
           <TouchableOpacity
@@ -252,7 +253,7 @@ export default function LoginScreen({
             <Text
               style={styles.link}
             >
-              Register
+              {t("login_register_link")}
             </Text>
           </TouchableOpacity>
         </View>

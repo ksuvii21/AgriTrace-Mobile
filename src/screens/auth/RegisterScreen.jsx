@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../../constants/colors";
 import Button from "../../components/common/Button";
 import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../context/LanguageContext";
 
 const roleOptions = [
   "FARMER",
@@ -27,6 +28,13 @@ const roleOptions = [
 export default function RegisterScreen({
   navigation,
 }) {
+  const { t } = useLanguage();
+  const roleLabels = {
+    FARMER: t("role_farmer"),
+    TRANSPORTER: t("role_transporter"),
+    WAREHOUSE: t("role_warehouse"),
+  };
+
   const { register } =
     useAuth();
 
@@ -56,8 +64,8 @@ export default function RegisterScreen({
       !form.role
     ) {
       Alert.alert(
-        "Missing information",
-        "Email, password and role are required."
+        t("register_missing_title"),
+        t("register_missing_body")
       );
 
       return;
@@ -67,8 +75,8 @@ export default function RegisterScreen({
       form.password.length < 6
     ) {
       Alert.alert(
-        "Invalid password",
-        "Password must contain at least 6 characters."
+        t("register_invalid_password_title"),
+        t("register_invalid_password_body")
       );
 
       return;
@@ -88,9 +96,9 @@ export default function RegisterScreen({
       );
     } catch (error) {
       Alert.alert(
-        "Registration failed",
+        t("register_failed_title"),
         error?.message ||
-          "Unable to create account."
+          t("register_failed_default")
       );
     } finally {
       setLoading(false);
@@ -115,7 +123,7 @@ export default function RegisterScreen({
         <Text
           style={styles.topTitle}
         >
-          Create Account
+          {t("register_title")}
         </Text>
 
         <View
@@ -130,7 +138,7 @@ export default function RegisterScreen({
         keyboardShouldPersistTaps="handled"
       >
         <Input
-          label="Full Name"
+          label={t("register_field_name")}
           value={form.name}
           onChangeText={(value) =>
             update(
@@ -138,11 +146,11 @@ export default function RegisterScreen({
               value
             )
           }
-          placeholder="Your name"
+          placeholder={t("register_field_name_placeholder")}
         />
 
         <Input
-          label="Email"
+          label={t("register_field_email")}
           value={form.email}
           onChangeText={(value) =>
             update(
@@ -156,7 +164,7 @@ export default function RegisterScreen({
         />
 
         <Input
-          label="Password"
+          label={t("register_field_password")}
           value={form.password}
           onChangeText={(value) =>
             update(
@@ -164,12 +172,12 @@ export default function RegisterScreen({
               value
             )
           }
-          placeholder="Minimum 6 characters"
+          placeholder={t("register_field_password_placeholder")}
           secureTextEntry
         />
 
         <Input
-          label="Organisation"
+          label={t("register_field_org")}
           value={
             form.organisation
           }
@@ -179,11 +187,11 @@ export default function RegisterScreen({
               value
             )
           }
-          placeholder="ABC Organic Farm"
+          placeholder={t("register_field_org_placeholder")}
         />
 
         <Input
-          label="Phone"
+          label={t("register_field_phone")}
           value={form.phone}
           onChangeText={(value) =>
             update(
@@ -198,7 +206,7 @@ export default function RegisterScreen({
         <Text
           style={styles.label}
         >
-          Role
+          {t("register_field_role")}
         </Text>
 
         <View
@@ -231,7 +239,7 @@ export default function RegisterScreen({
                     },
                   ]}
                 >
-                  {role}
+                  {roleLabels[role]}
                 </Text>
               </TouchableOpacity>
             )
@@ -239,16 +247,13 @@ export default function RegisterScreen({
         </View>
 
         <Button
-          title="Create Account"
+          title={t("register_button")}
           onPress={submit}
           loading={loading}
         />
 
         <Text style={styles.note}>
-          Choose the role that
-          matches your part of
-          the farm-to-fork supply
-          chain.
+          {t("register_note")}
         </Text>
       </ScrollView>
     </View>
