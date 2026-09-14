@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import COLORS from "../../constants/colors";
+import { useLanguage } from "../../context/LanguageContext";
 
 const theme = {
   Critical:{bg:COLORS.criticalLight,fg:COLORS.critical},
@@ -10,20 +11,21 @@ const theme = {
 
 export default function AlertCard({ alert, onView, onAcknowledge }) {
   const t = theme[alert.severity] || theme.Warning;
+  const { t: translate } = useLanguage();
   return (
     <View style={[styles.card, alert.resolved && {opacity:.5}]}>
       <Text style={[styles.tag,{backgroundColor:t.bg,color:t.fg}]}>{alert.severity.toUpperCase()}</Text>
       <Text style={styles.title}>{alert.title}</Text>
       <Text style={styles.sub}>{alert.shipment}</Text>
       <Text style={styles.detail}>{alert.detail}</Text>
-      <Text style={styles.time}>{alert.resolved ? "Resolved · " : ""}{alert.time}</Text>
+      <Text style={styles.time}>{alert.resolved ? translate("alert_resolved_label") + " · " : ""}{alert.time}</Text>
       <View style={styles.actions}>
         <TouchableOpacity style={styles.ghost} onPress={onView}>
-          <Text style={styles.ghostText}>{alert.type === "Device" ? "View Device" : "View Shipment"}</Text>
+          <Text style={styles.ghostText}>{alert.type === "Device" ? translate("alert_view_device") : translate("alert_view_shipment")}</Text>
         </TouchableOpacity>
         {!alert.resolved && (
           <TouchableOpacity style={styles.primary} onPress={onAcknowledge}>
-            <Text style={styles.primaryText}>Acknowledge</Text>
+            <Text style={styles.primaryText}>{translate("alert_acknowledge")}</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -26,11 +26,13 @@ import AlertsScreen from "../screens/alerts/AlertsScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 
 import COLORS from "../constants/colors";
+import { useLanguage } from "../context/LanguageContext";
 
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   return (
     <Tab.Navigator
@@ -156,7 +158,7 @@ export default function BottomTabs() {
         name="Home"
         component={DashboardScreen}
         options={{
-          tabBarLabel: "Home",
+          tabBarLabel: t("tab_home"),
         }}
       />
 
@@ -165,7 +167,7 @@ export default function BottomTabs() {
         name="Shipments"
         component={ShipmentsScreen}
         options={{
-          tabBarLabel: "Shipments",
+          tabBarLabel: t("tab_shipments"),
         }}
       />
 
@@ -205,7 +207,7 @@ export default function BottomTabs() {
         name="Alerts"
         component={AlertsScreen}
         options={{
-          tabBarLabel: "Alerts",
+          tabBarLabel: t("tab_alerts"),
 
           tabBarBadge: 4,
 
@@ -234,7 +236,7 @@ export default function BottomTabs() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: "Profile",
+          tabBarLabel: t("tab_profile"),
         }}
       />
     </Tab.Navigator>

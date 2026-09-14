@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../../constants/colors";
 import ShipmentStatus from "./ShipmentStatus";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function ShipmentCard({ shipment, onPress }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.card}>
       <View style={styles.top}>
@@ -23,13 +25,13 @@ export default function ShipmentCard({ shipment, onPress }) {
       </View>
 
       <View style={styles.meta}>
-        <Meta label="Temperature" value={`${shipment.temperature}°C`} />
-        <Meta label={shipment.status === "DELIVERED" ? "Delivered" : "ETA"} value={shipment.eta} />
-        <Meta label="Device" value={shipment.device || "—"} />
+        <Meta label={t("shipment_meta_temperature")} value={`${shipment.temperature}°C`} />
+        <Meta label={shipment.status === "DELIVERED" ? t("shipment_meta_delivered") : t("shipment_meta_eta")} value={shipment.eta} />
+        <Meta label={t("shipment_meta_device")} value={shipment.device || "—"} />
       </View>
 
       <TouchableOpacity style={styles.button} onPress={onPress}>
-        <Text style={styles.buttonText}>View Details</Text>
+        <Text style={styles.buttonText}>{t("shipment_view_details")}</Text>
         <Ionicons name="chevron-forward" size={15} color={COLORS.green}/>
       </TouchableOpacity>
     </View>

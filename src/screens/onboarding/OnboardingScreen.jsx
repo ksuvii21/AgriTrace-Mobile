@@ -19,36 +19,35 @@ import {
 
 import COLORS from "../../constants/colors";
 import Button from "../../components/common/Button";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width } =
   Dimensions.get("window");
 
-const slides = [
-  {
-    id: "1",
-    title: "Track Every Shipment",
-    description:
-      "Monitor agricultural products throughout their farm-to-fork journey.",
-    type: "journey",
-  },
+function getSlides(t) {
+  return [
+    {
+      id: "1",
+      title: t("onboarding_slide1_title"),
+      description: t("onboarding_slide1_desc"),
+      type: "journey",
+    },
 
-  {
-    id: "2",
-    title:
-      "Monitor Product Conditions",
-    description:
-      "Track temperature, humidity, gas levels and device health throughout transportation.",
-    type: "temperature",
-  },
+    {
+      id: "2",
+      title: t("onboarding_slide2_title"),
+      description: t("onboarding_slide2_desc"),
+      type: "temperature",
+    },
 
-  {
-    id: "3",
-    title: "Verify Every Journey",
-    description:
-      "Use traceability records and QR verification to establish trust across the supply chain.",
-    type: "verify",
-  },
-];
+    {
+      id: "3",
+      title: t("onboarding_slide3_title"),
+      description: t("onboarding_slide3_desc"),
+      type: "verify",
+    },
+  ];
+}
 
 function SlideVisual({ type }) {
   if (type === "journey") {
@@ -117,6 +116,9 @@ function SlideVisual({ type }) {
 export default function OnboardingScreen({
   navigation,
 }) {
+  const { t } = useLanguage();
+  const slides = getSlides(t);
+
   const [index, setIndex] =
     useState(0);
 
@@ -127,10 +129,7 @@ export default function OnboardingScreen({
   };
 
   const handleNext = () => {
-    if (
-      index <
-      slides.length - 1
-    ) {
+    if (index < slides.length - 1) {
       listRef.current?.scrollToIndex({
         index: index + 1,
         animated: true,
@@ -158,7 +157,7 @@ export default function OnboardingScreen({
           onPress={goToLogin}
         >
           <Text style={styles.skip}>
-            Skip
+            {t("onboarding_skip")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -222,8 +221,8 @@ export default function OnboardingScreen({
           title={
             index ===
             slides.length - 1
-              ? "Get Started"
-              : "Next"
+              ? t("onboarding_get_started")
+              : t("onboarding_next")
           }
           onPress={handleNext}
         />

@@ -12,10 +12,12 @@ import { Ionicons } from "@expo/vector-icons";
 
 import COLORS from "../../constants/colors";
 import { APP_CONFIG } from "../../constants/config";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
 export default function SplashScreen({ navigation }) {
+  const { t } = useLanguage();
   const logoScale = useRef(new Animated.Value(0.7)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
 
@@ -152,9 +154,9 @@ export default function SplashScreen({ navigation }) {
         AgriTrace
       </Text>
 
-      {/* Tagline */}
+            {/* Tagline */}
       <Text style={styles.tagline}>
-        Trace Every Harvest. Trust Every Journey.
+        {t("splash_tagline")}
       </Text>
 
       {/* Connected nodes */}

@@ -43,10 +43,12 @@ import Loader from "../../components/common/Loader";
 import EmptyState from "../../components/common/EmptyState";
 
 import ShipmentStatus from "../../components/shipment/ShipmentStatus";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function DashboardScreen({
   navigation,
 }) {
+  const { t } = useLanguage();
   const { profile } = useAuth();
 
   const [summary, setSummary] =
@@ -177,15 +179,15 @@ export default function DashboardScreen({
         new Date().getHours();
 
       if (hour < 12) {
-        return "Good Morning";
+        return t("dashboard_greeting_morning");
       }
 
       if (hour < 17) {
-        return "Good Afternoon";
+        return t("dashboard_greeting_afternoon");
       }
 
-      return "Good Evening";
-    }, []);
+      return t("dashboard_greeting_evening");
+    }, [t]);
 
   /*
   |--------------------------------------------------------------------------
@@ -197,30 +199,30 @@ export default function DashboardScreen({
     {
       route: "Scan",
       icon: "qr-code-outline",
-      label: "Scan QR",
-      subtitle: "Trace shipment",
+      label: t("dashboard_action_scan_label"),
+      subtitle: t("dashboard_action_scan_subtitle"),
     },
 
     {
       route: "Shipments",
       icon: "cube-outline",
-      label: "Shipments",
-      subtitle: "View all",
+      label: t("dashboard_action_shipments_label"),
+      subtitle: t("dashboard_action_shipments_subtitle"),
     },
 
     {
       route: "Devices",
       icon:
         "hardware-chip-outline",
-      label: "Devices",
-      subtitle: "Node status",
+      label: t("dashboard_action_devices_label"),
+      subtitle: t("dashboard_action_devices_subtitle"),
     },
 
     {
       route: "Alerts",
       icon: "warning-outline",
-      label: "Alerts",
-      subtitle: "View issues",
+      label: t("dashboard_action_alerts_label"),
+      subtitle: t("dashboard_action_alerts_subtitle"),
     },
   ];
 
@@ -232,7 +234,7 @@ export default function DashboardScreen({
 
   if (loading) {
     return (
-      <Loader text="Loading dashboard..." />
+      <Loader text={t("dashboard_loading")} />
     );
   }
 
@@ -309,8 +311,7 @@ export default function DashboardScreen({
                 styles.brandTagline
               }
             >
-              Farm-to-Fork
-              Traceability
+              {t("dashboard_brand_tagline")}
             </Text>
           </View>
         </View>
@@ -405,7 +406,7 @@ export default function DashboardScreen({
           {profile?.name ||
             profile?.email
               ?.split("@")[0] ||
-            "AgriTrace User"}
+            t("dashboard_default_user")}
         </Text>
 
         <View
@@ -423,7 +424,8 @@ export default function DashboardScreen({
             }
           >
             {formatRole(
-              profile?.role
+              profile?.role,
+              t
             )}
           </Text>
         </View>
@@ -453,15 +455,14 @@ export default function DashboardScreen({
                 styles.errorTitle
               }
             >
-              Unable to refresh
-              dashboard
+              {t("dashboard_error_title")}
             </Text>
 
             <Text
               style={styles.error}
             >
               {error.message ||
-                "Something went wrong while loading dashboard data."}
+                t("dashboard_error_default")}
             </Text>
           </View>
 
@@ -495,7 +496,7 @@ export default function DashboardScreen({
             styles.sectionHeading
           }
         >
-          Overview
+          {t("dashboard_overview_heading")}
         </Text>
 
         <View
@@ -514,7 +515,7 @@ export default function DashboardScreen({
               styles.sectionHint
             }
           >
-            Live operations
+            {t("dashboard_live_operations")}
           </Text>
         </View>
       </View>
@@ -529,8 +530,8 @@ export default function DashboardScreen({
             summary?.activeShipments ??
             0
           }
-          label="Active"
-          sublabel="Shipments"
+          label={t("metric_active")}
+          sublabel={t("metric_sub_shipments")}
           icon="cube-outline"
           iconBackground="#E7F6EF"
           iconColor={
@@ -543,8 +544,8 @@ export default function DashboardScreen({
             summary?.completedShipments ??
             0
           }
-          label="Completed"
-          sublabel="Shipments"
+          label={t("metric_completed")}
+          sublabel={t("metric_sub_shipments")}
           icon="checkmark-circle-outline"
           iconBackground="#EAF3FF"
           iconColor={
@@ -557,8 +558,8 @@ export default function DashboardScreen({
             summary?.openAlerts ??
             0
           }
-          label="Open"
-          sublabel="Alerts"
+          label={t("metric_open")}
+          sublabel={t("metric_sub_alerts")}
           icon="warning-outline"
           iconBackground="#FFF3E4"
           iconColor="#E5902C"
@@ -569,8 +570,8 @@ export default function DashboardScreen({
             summary?.onlineDevices ??
             0
           }
-          label="Online"
-          sublabel="Devices"
+          label={t("metric_online")}
+          sublabel={t("metric_sub_devices")}
           icon="hardware-chip-outline"
           iconBackground="#F0ECFF"
           iconColor="#7258C7"
@@ -582,8 +583,8 @@ export default function DashboardScreen({
       ================================================================= */}
 
       <SectionTitle
-        title="Current Shipment"
-        action="View all"
+        title={t("dashboard_current_shipment")}
+        action={t("dashboard_view_all")}
         onAction={() =>
           navigation.navigate(
             "Shipments"
@@ -612,7 +613,7 @@ export default function DashboardScreen({
                   styles.shipIdLabel
                 }
               >
-                SHIPMENT
+                {t("dashboard_shipment_label")}
               </Text>
 
               <Text
@@ -667,8 +668,7 @@ export default function DashboardScreen({
                   styles.productCaption
                 }
               >
-                Farm-to-fork
-                shipment
+                {t("dashboard_product_caption")}
               </Text>
             </View>
           </View>
@@ -705,7 +705,7 @@ export default function DashboardScreen({
                     styles.routeCaption
                   }
                 >
-                  FROM
+                  {t("dashboard_from")}
                 </Text>
 
                 <Text
@@ -717,7 +717,7 @@ export default function DashboardScreen({
                   }
                 >
                   {shipment.source ||
-                    "Origin"}
+                    t("dashboard_origin_fallback")}
                 </Text>
               </View>
             </View>
@@ -756,7 +756,7 @@ export default function DashboardScreen({
                     styles.routeCaption
                   }
                 >
-                  TO
+                  {t("dashboard_to")}
                 </Text>
 
                 <Text
@@ -768,7 +768,7 @@ export default function DashboardScreen({
                   }
                 >
                   {shipment.destination ||
-                    "Destination"}
+                    t("dashboard_destination_fallback")}
                 </Text>
               </View>
             </View>
@@ -786,7 +786,7 @@ export default function DashboardScreen({
                 styles.progressLabel
               }
             >
-              Shipment Progress
+              {t("dashboard_shipment_progress")}
             </Text>
 
             <Text
@@ -837,7 +837,7 @@ export default function DashboardScreen({
               styles.sensorHeading
             }
           >
-            Live Conditions
+            {t("dashboard_live_conditions")}
           </Text>
 
           <View
@@ -850,7 +850,7 @@ export default function DashboardScreen({
                 "°C",
                 1
               )}
-              label="Temp"
+              label={t("env_temp")}
               iconColor="#E46E5D"
               iconBackground="#FFF0ED"
             />
@@ -862,7 +862,7 @@ export default function DashboardScreen({
                 "%",
                 0
               )}
-              label="Humidity"
+              label={t("env_humidity")}
               iconColor={
                 COLORS.blue
               }
@@ -875,7 +875,7 @@ export default function DashboardScreen({
                 shipment.gasStatus ||
                 "—"
               }
-              label="Gas"
+              label={t("env_gas")}
               iconColor="#7063C8"
               iconBackground="#F0EEFF"
             />
@@ -887,7 +887,7 @@ export default function DashboardScreen({
                 "%",
                 0
               )}
-              label="Battery"
+              label={t("env_battery")}
               iconColor={
                 COLORS.green
               }
@@ -931,7 +931,7 @@ export default function DashboardScreen({
                   styles.fullButtonText
                 }
               >
-                View Shipment
+                {t("dashboard_view_shipment_btn")}
               </Text>
 
               <Ionicons
@@ -946,8 +946,8 @@ export default function DashboardScreen({
         </View>
       ) : (
         <EmptyState
-          title="No shipments yet"
-          message="Create or assign a shipment to see it here."
+          title={t("dashboard_empty_title")}
+          message={t("dashboard_empty_message")}
         />
       )}
 
@@ -956,7 +956,7 @@ export default function DashboardScreen({
       ================================================================= */}
 
       <SectionTitle
-        title="Quick Actions"
+        title={t("dashboard_quick_actions")}
       />
 
       <View
@@ -1019,7 +1019,7 @@ export default function DashboardScreen({
       ================================================================= */}
 
       <SectionTitle
-        title="Network Health"
+        title={t("dashboard_network_health")}
       />
 
       <View
@@ -1027,7 +1027,7 @@ export default function DashboardScreen({
       >
         <Overview
           icon="thermometer-outline"
-          label="Avg Temperature"
+          label={t("overview_avg_temp")}
           value={formatValue(
             summary?.averageTemperature,
             "°C",
@@ -1037,7 +1037,7 @@ export default function DashboardScreen({
 
         <Overview
           icon="water-outline"
-          label="Avg Humidity"
+          label={t("overview_avg_humidity")}
           value={formatValue(
             summary?.averageHumidity,
             "%",
@@ -1047,7 +1047,7 @@ export default function DashboardScreen({
 
         <Overview
           icon="alert-circle-outline"
-          label="Critical Alerts"
+          label={t("overview_critical_alerts")}
           value={
             summary?.criticalAlerts ??
             0
@@ -1056,7 +1056,7 @@ export default function DashboardScreen({
 
         <Overview
           icon="cloud-offline-outline"
-          label="Offline Devices"
+          label={t("overview_offline_devices")}
           value={
             summary?.offlineDevices ??
             0
@@ -1072,8 +1072,8 @@ export default function DashboardScreen({
         ?.length > 0 && (
         <>
           <SectionTitle
-            title="Recent Activity"
-            action="Shipments"
+            title={t("dashboard_recent_activity")}
+            action={t("dashboard_action_shipments_label")}
             onAction={() =>
               navigation.navigate(
                 "Shipments"
@@ -1143,7 +1143,7 @@ export default function DashboardScreen({
                       >
                         {item.product ||
                           item.productName ||
-                          "Shipment"}
+                          t("dashboard_activity_shipment_fallback")}
                       </Text>
 
                       <Text
@@ -1171,7 +1171,8 @@ export default function DashboardScreen({
                         }
                       >
                         {formatStatus(
-                          item.status
+                          item.status,
+                          t
                         )}
                       </Text>
 
@@ -1397,26 +1398,26 @@ function getInitials(
   );
 }
 
-function formatRole(role) {
+function formatRole(role, t) {
   const roles = {
     ADMIN:
-      "Operations Manager",
+      t("role_admin"),
 
-    FARMER: "Farmer",
+    FARMER: t("role_farmer"),
 
     TRANSPORTER:
-      "Transporter",
+      t("role_transporter"),
 
     WAREHOUSE:
-      "Warehouse Manager",
+      t("role_warehouse"),
 
-    RETAILER: "Retailer",
+    RETAILER: t("role_retailer"),
   };
 
   return (
     roles[role] ||
     role ||
-    "User"
+    t("role_default_user")
   );
 }
 
@@ -1438,9 +1439,9 @@ function formatValue(
   ).toFixed(decimals)}${suffix}`;
 }
 
-function formatStatus(status) {
+function formatStatus(status, t) {
   if (!status) {
-    return "Updated";
+    return t("dashboard_status_updated");
   }
 
   return status
