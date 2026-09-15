@@ -20,6 +20,7 @@ import {
 import COLORS from "../../constants/colors";
 import Button from "../../components/common/Button";
 import { useLanguage } from "../../context/LanguageContext";
+import { setOnboardingCompleted } from "../../services/storage";
 
 const { width } =
   Dimensions.get("window");
@@ -124,18 +125,20 @@ export default function OnboardingScreen({
 
   const listRef = useRef(null);
 
-  const goToLogin = () => {
+  const goToLogin = async () => {
+    await setOnboardingCompleted();
     navigation.replace("Login");
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (index < slides.length - 1) {
       listRef.current?.scrollToIndex({
         index: index + 1,
         animated: true,
       });
     } else {
-      goToLogin();
+      await setOnboardingCompleted();
+      navigation.replace("Login");
     }
   };
 

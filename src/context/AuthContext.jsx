@@ -1,10 +1,9 @@
 import React, { createContext, useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../config/firebase";
 import {
   getMe,
   loginWithEmail,
-  logout as logoutApi,
   registerWithEmail,
   requestPasswordReset,
   updateMe,
@@ -179,10 +178,7 @@ async function login(email, password) {
   }
 
   async function logout() {
-    await logoutApi();
-    setFirebaseUser(null);
-    setProfile(null);
-    await clearSessionStorage();
+    await signOut(auth);
   }
 
   async function updateProfile(updates) {

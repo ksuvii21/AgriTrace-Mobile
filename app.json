@@ -3,21 +3,29 @@
     "name": "AgriTrace",
     "slug": "agritrace-mobile",
     "version": "1.0.0",
+    "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.agritrace.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#145C46"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
       }
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.agritrace.mobile"
+      "bundleIdentifier": "com.agritrace.mobile",
+      "icon": "./assets/icon.png"
     },
     "plugins": [
       "expo-secure-store",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9594d9bc-52e5-48a5-b321-9ff3634e1fbe"
+      }
+    }
   }
 }

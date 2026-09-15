@@ -13,11 +13,14 @@ import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../../constants/colors";
 import { APP_CONFIG } from "../../constants/config";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuth } from "../../hooks/useAuth";
+import { getOnboardingCompleted } from "../../services/storage";
 
 const { width } = Dimensions.get("window");
 
 export default function SplashScreen({ navigation }) {
   const { t } = useLanguage();
+  const { firebaseUser, initializing } = useAuth();
   const logoScale = useRef(new Animated.Value(0.7)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
 
@@ -100,17 +103,40 @@ export default function SplashScreen({ navigation }) {
     );
 
     nodeAnimation.start();
+  }, []);
 
-    const timeout = setTimeout(() => {
-      navigation.replace("Onboarding");
-    }, APP_CONFIG.splashDuration);
+  useEffect(() => {
+    if (initializing) return;
+
+    let mounted = true;
+
+    async function checkAndNavigate() {
+      try {
+        const onboardingDone = await getOnboardingCompleted();
+
+        if (!mounted) return;
+
+        if (!onboardingDone) {
+          navigation.replace("Onboarding");
+        } else if (!firebaseUser) {
+          navigation.replace("Login");
+        } else {
+          navigation.replace("MainTabs");
+        }
+      } catch (error) {
+        console.error("[SplashScreen] Navigation check error:", error);
+        if (mounted) {
+          navigation.replace("Onboarding");
+        }
+      }
+    }
+
+    checkAndNavigate();
 
     return () => {
-      clearTimeout(timeout);
-      loaderAnimation.stop();
-      nodeAnimation.stop();
+      mounted = false;
     };
-  }, []);
+  }, [initializing, firebaseUser, navigation]);
 
   return (
     <LinearGradient
