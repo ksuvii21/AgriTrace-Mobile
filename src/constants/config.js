@@ -10,6 +10,7 @@ export const APP_CONFIG = {
   wsUrl:
     process.env.EXPO_PUBLIC_WS_URL ||
     "ws://192.168.1.10:8000",
+  socketUrl: process.env.EXPO_PUBLIC_SOCKET_URL,
 };
 
 export const ROLES = {
@@ -18,3 +19,5 @@ export const ROLES = {
   TRANSPORTER: "Transporter",
   WAREHOUSE: "Warehouse Manager",
 };
+console.log("API URL:", APP_CONFIG.apiUrl);
+console.log("WS URL:", APP_CONFIG.wsUrl);

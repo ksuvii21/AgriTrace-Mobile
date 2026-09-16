@@ -21,15 +21,19 @@ const apiClient =
 
 apiClient.interceptors.request.use(
   async (config) => {
-    const user =
-      auth.currentUser;
+    const user = auth?.currentUser;
 
-    if (user) {
-      const token =
-        await user.getIdToken();
+    if (!user) {
+      delete config.headers.Authorization;
+      return config;
+    }
 
-      config.headers.Authorization =
-        `Bearer ${token}`;
+    try {
+      const token = await user.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+    } catch (error) {
+      console.warn("[apiClient] Failed to get Firebase ID token:", error);
+      delete config.headers.Authorization;
     }
 
     return config;

@@ -22,7 +22,7 @@ export async function loginWithEmail(email, password) {
 
 export async function registerWithEmail({ email, password, role, name, phone, organisation, address }) {
   const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-  await credential.user.getIdToken(true);
+  await credential.user.getIdToken();
 
   await apiClient.post("/auth/register", { role });
 

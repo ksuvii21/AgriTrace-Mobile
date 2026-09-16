@@ -3,18 +3,28 @@
     "version": ">= 24.3.0",
     "appVersionSource": "remote"
   },
+
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "development"
     },
+
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "preview",
+      "android": {
+        "buildType": "apk"
+      }
     },
+
     "production": {
+      "environment": "production",
       "autoIncrement": true
     }
   },
+
   "submit": {
     "production": {}
   }

@@ -50,13 +50,22 @@ useEffect(() => {
 
   let unsubscribe;
 
-  try {
-    console.log("[AuthContext] registering onAuthStateChanged");
+  async function registerAuthListener() {
+    try {
+      console.log("[AuthContext] waiting for Firebase auth state");
 
-    unsubscribe = onAuthStateChanged(
-      auth,
+      if (typeof auth?.authStateReady === "function") {
+        await auth.authStateReady();
+      }
 
-      async (user) => {
+      if (!active) return;
+
+      console.log("[AuthContext] registering onAuthStateChanged");
+
+      unsubscribe = onAuthStateChanged(
+        auth,
+
+        async (user) => {
         try {
           console.log(
             "[AuthContext] auth changed:",
@@ -124,28 +133,33 @@ useEffect(() => {
             setInitializing(false);
           }
         }
-      },
+        },
 
-      (error) => {
-        console.error(
-          "[AuthContext] Firebase listener ERROR:",
-          error
-        );
+        (error) => {
+          console.error(
+            "[AuthContext] Firebase listener ERROR:",
+            error
+          );
 
-        if (active) {
-          setInitializing(false);
+          if (active) {
+            setInitializing(false);
+          }
         }
-      }
-    );
-  } catch (error) {
-    console.error(
-      "[AuthContext] onAuthStateChanged setup ERROR:",
-      error,
-      error?.stack
-    );
+      );
+    } catch (error) {
+      console.error(
+        "[AuthContext] onAuthStateChanged setup ERROR:",
+        error,
+        error?.stack
+      );
 
-    setInitializing(false);
+      if (active) {
+        setInitializing(false);
+      }
+    }
   }
+
+  registerAuthListener();
 
   return () => {
     active = false;
