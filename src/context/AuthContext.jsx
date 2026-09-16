@@ -7,6 +7,7 @@ import {
   registerWithEmail,
   requestPasswordReset,
   updateMe,
+  changePassword,
 } from "../api/authApi";
 import {
   clearSessionStorage,
@@ -202,6 +203,10 @@ async function login(email, password) {
     return updated;
   }
 
+  async function changeUserPassword({ currentPassword, newPassword }) {
+    await changePassword({ currentPassword, newPassword });
+  }
+
   const value = useMemo(() => ({
     firebaseUser,
     profile,
@@ -213,6 +218,7 @@ async function login(email, password) {
     logout,
     updateProfile,
     resetPassword: requestPasswordReset,
+    changePassword: changeUserPassword,
   }), [firebaseUser, profile, initializing]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

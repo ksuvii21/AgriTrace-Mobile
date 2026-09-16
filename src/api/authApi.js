@@ -3,6 +3,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import apiClient, { unwrapEnvelope } from "./apiClient";
@@ -50,6 +53,19 @@ export async function updateMe(updates) {
 
 export async function requestPasswordReset(email) {
   return sendPasswordResetEmail(auth, email.trim());
+}
+
+export async function changePassword({ currentPassword, newPassword }) {
+  const user = auth?.currentUser;
+
+  if (!user || !user.email) {
+    throw new Error("You must be signed in to change your password.");
+  }
+
+  // Firebase requires re-authentication before updating the password.
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
 }
 
 export async function logout() {
