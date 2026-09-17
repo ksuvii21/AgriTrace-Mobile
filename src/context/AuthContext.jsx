@@ -118,6 +118,22 @@ useEffect(() => {
               error,
               error?.stack
             );
+
+            // Backend unreachable (network/offline). Fall back to the
+            // cached profile so the UI still renders user data.
+            if (active && !profile) {
+              try {
+                const saved = await getSavedUserProfile();
+                if (active && saved) {
+                  setProfile(saved);
+                }
+              } catch (storageError) {
+                console.error(
+                  "[AuthContext] restore fallback ERROR:",
+                  storageError
+                );
+              }
+            }
           } finally {
             if (active) {
               setInitializing(false);

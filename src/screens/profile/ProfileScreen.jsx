@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import COLORS from "../../constants/colors";
 import { useAuth } from "../../hooks/useAuth";
 import { useLanguage } from "../../context/LanguageContext";
 
 export default function ProfileScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { profile, logout } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
   const [prefs, setPrefs] = useState({ temp: true, hum: true, gas: true, offline: true, shipment: false });
@@ -22,7 +24,7 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.top}>
+      <View style={[styles.top, { paddingTop: insets.top }]}>
         <Text style={styles.title}>{t("profile_title")}</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate("EditProfile")}
@@ -33,7 +35,12 @@ export default function ProfileScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 18 + insets.bottom + 72 },
+        ]}
+      >
         <View style={styles.head}>
           <LinearGradient colors={[COLORS.green, COLORS.blue]} style={styles.avatar}>
             <Text style={styles.avatarText}>{initials(profile?.name || profile?.email)}</Text>

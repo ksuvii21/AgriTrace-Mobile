@@ -1,11 +1,14 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import COLORS from "../../constants/colors";
 
 export default function TopBar({ title, navigation, rightIcon, onRightPress }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingTop: insets.top }]}>
       {navigation?.canGoBack() ? (
         <TouchableOpacity style={styles.icon} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={19} color={COLORS.text} />

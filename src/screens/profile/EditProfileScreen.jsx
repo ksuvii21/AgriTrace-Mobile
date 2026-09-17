@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import COLORS from "../../constants/colors";
 import Button from "../../components/common/Button";
@@ -19,6 +20,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useLanguage } from "../../context/LanguageContext";
 
 export default function EditProfileScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const { profile, updateProfile } = useAuth();
 
@@ -91,7 +93,7 @@ export default function EditProfileScreen({ navigation }) {
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.top}>
+      <View style={[styles.top, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={21} color={COLORS.text} />
         </TouchableOpacity>
@@ -100,7 +102,10 @@ export default function EditProfileScreen({ navigation }) {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 18 + insets.bottom + 72 },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.subtitle}>{t("profile_edit_subtitle")}</Text>
