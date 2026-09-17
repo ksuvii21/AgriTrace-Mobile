@@ -5,11 +5,26 @@ export const APP_CONFIG = {
 
   apiUrl:
     process.env.EXPO_PUBLIC_API_URL ||
-    "http://192.168.1.10:8000/api/v1",
+    (() => {
+      if (__DEV__) {
+        console.warn(
+          "[config] EXPO_PUBLIC_API_URL is not set — falling back to local dev URL. " +
+          "The mobile device/emulator will need network access to that host."
+        );
+      }
+      return "http://192.168.1.10:8000/api/v1";
+    })(),
 
   wsUrl:
     process.env.EXPO_PUBLIC_WS_URL ||
-    "ws://192.168.1.10:8000",
+    (() => {
+      if (__DEV__) {
+        console.warn(
+          "[config] EXPO_PUBLIC_WS_URL is not set — falling back to local dev URL."
+        );
+      }
+      return "ws://192.168.1.10:8000";
+    })(),
   socketUrl: process.env.EXPO_PUBLIC_SOCKET_URL,
 };
 

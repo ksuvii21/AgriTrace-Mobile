@@ -19,6 +19,13 @@ const apiClient =
     },
   });
 
+if (__DEV__) {
+  console.log(
+    "[apiClient] baseURL:",
+    APP_CONFIG.apiUrl
+  );
+}
+
 apiClient.interceptors.request.use(
   async (config) => {
     const user = auth?.currentUser;
@@ -55,6 +62,10 @@ apiClient.interceptors.response.use(
       error.message ||
       "Request failed";
 
+    const requestUrl =
+      error.config?.baseURL +
+      (error.config?.url || "");
+
     const wrapped =
       new Error(message);
 
@@ -65,6 +76,32 @@ apiClient.interceptors.response.use(
 
     wrapped.original =
       error;
+
+    wrapped.url = requestUrl;
+
+    // Preserve Axios error code for diagnostics
+    // (e.g. ERR_NETWORK, ECONNABORTED, ETIMEDOUT)
+    if (error.code) {
+      wrapped.code = error.code;
+    }
+
+    // Detailed logging for network-level errors
+    if (!error.response && __DEV__) {
+      console.error(
+        "[apiClient] Network request failed:",
+        JSON.stringify({
+          code: error.code,
+          url: requestUrl,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method,
+          timeout: error.config?.timeout,
+          message: error.message,
+          hasAuthHeader:
+            !!error.config?.headers
+              ?.Authorization,
+        }, null, 2)
+      );
+    }
 
     throw wrapped;
   }
