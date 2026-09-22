@@ -10,9 +10,11 @@ import { getLatestTelemetryByShipment, getTelemetryHistoryByShipment } from "../
 import { createAuthenticatedSocket, subscribeToShipment, unsubscribeFromShipment } from "../../services/websocket";
 import { isTempWarning,isHumidityWarning } from "../../utils/statusUtils";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAlerts } from "../../context/AlertContext";
 
 export default function LiveMonitoringScreen({navigation,route}) {
   const {t}=useLanguage();
+  const {processTelemetry}=useAlerts();
   const shipmentId=route.params?.shipmentId;
   const [current,setCurrent]=useState(null),[history,setHistory]=useState([]),[connected,setConnected]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(null);
   const socketRef=useRef(null);
@@ -23,9 +25,11 @@ export default function LiveMonitoringScreen({navigation,route}) {
       try{
         const [latest,hist]=await Promise.all([getLatestTelemetryByShipment(shipmentId),getTelemetryHistoryByShipment(shipmentId,{limit:20})]);
         if(!mounted)return;setCurrent(latest);setHistory([...(hist||[])].reverse());
+        // Feed the latest REST sample into the critical-alert engine.
+        processTelemetry(latest);
         const ws=await createAuthenticatedSocket({
           onOpen:(_,socket)=>{if(!mounted)return;setConnected(true);subscribeToShipment(socket,shipmentId)},
-          onMessage:(event)=>{if(!mounted)return;if(event.type==="telemetry.updated"&&event.data?.shipmentId===shipmentId){setCurrent(event.data);setHistory(prev=>[...prev.slice(-19),event.data])}},
+          onMessage:(event)=>{if(!mounted)return;if(event.type==="telemetry.updated"&&event.data?.shipmentId===shipmentId){setCurrent(event.data);setHistory(prev=>[...prev.slice(-19),event.data]);processTelemetry(event.data)}},
           onClose:()=>mounted&&setConnected(false),
           onError:()=>mounted&&setConnected(false),
         });
@@ -34,7 +38,7 @@ export default function LiveMonitoringScreen({navigation,route}) {
       finally{if(mounted)setLoading(false)}
     })();
     return ()=>{mounted=false;const ws=socketRef.current;if(ws){unsubscribeFromShipment(ws,shipmentId);ws.close()}};
-  },[shipmentId]);
+  },[shipmentId,processTelemetry]);
 
   if(loading)return <Loader text={t("live_monitoring_connecting")}/>;
   const temp=history.map(x=>Number(x.temperature)).filter(Number.isFinite),hum=history.map(x=>Number(x.humidity)).filter(Number.isFinite),gas=history.map(x=>Number(x.gasLevel)).filter(Number.isFinite);

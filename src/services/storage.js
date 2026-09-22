@@ -4,7 +4,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const KEYS = {
   USER_PROFILE: "agritrace_user_profile",
   ONBOARDING_COMPLETED: "agritrace_onboarding_completed",
+  ALERT_HISTORY: "agritrace_alert_history",
+  PENDING_ACKS: "agritrace_pending_acknowledgements",
 };
+
+export { KEYS as STORAGE_KEYS };
 
 export async function saveUserProfile(profile) {
   if (!profile) {
