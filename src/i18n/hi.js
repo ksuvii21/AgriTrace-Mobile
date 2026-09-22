@@ -92,6 +92,12 @@ export default {
   device_shipment_label: "शिपमेंट",
   device_battery_label: "बैटरी",
   device_last_seen_label: "आखिरी बार देखा गया",
+  device_info_cloud_status: "क्लाउड स्थिति",
+  device_info_ble: "BLE",
+  device_ble_ready_for_setup: "सेटअप के लिए तैयार",
+  device_ble_connected: "कनेक्टेड",
+  device_offline_ble_note: "ऑफ़लाइन का मतलब है कि क्लाउड को डिवाइस से हाल ही में जानकारी नहीं मिली है। Wi-Fi को BLE के माध्यम से फिर भी कॉन्फ़िगर किया जा सकता है।",
+  device_configure_wifi_button: "Wi-Fi कॉन्फ़िगर करें",
 
   // Device details screen
   device_details_title: "डिवाइस विवरण",

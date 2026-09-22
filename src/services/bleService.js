@@ -53,7 +53,7 @@ class BleService {
 
   /**
    * Start scanning for AgriTrace devices.
-   * Filters by BLE_SERVICE_UUID and AGRITRACE-* name prefix.
+   * Scan all advertisements and identify devices by service UUID, local name, or device name.
    * Prevents duplicate concurrent scans.
    * @param {(device) => void} onDeviceFound
    * @param {(error) => void}  onError
@@ -63,7 +63,7 @@ class BleService {
     if (this._isScanning) return false;
     this._isScanning = true;
     this.manager.startDeviceScan(
-      [BLE_SERVICE_UUID],
+      null,
       { allowDuplicates: false },
       (error, device) => {
         if (error) {
@@ -71,11 +71,22 @@ class BleService {
           onError?.(error);
           return;
         }
-        if (device?.name?.startsWith(DEVICE_PREFIX)) {
-          onDeviceFound(device);
+        if (!device) return;
+
+        const deviceName = device.name || device.localName;
+        const isAgriTraceDevice =
+          device.name?.startsWith(DEVICE_PREFIX) ||
+          device.localName?.startsWith(DEVICE_PREFIX) ||
+          device.serviceUUIDs?.includes(BLE_SERVICE_UUID);
+
+        if (isAgriTraceDevice) {
+          onDeviceFound({ ...device, name: deviceName || "AgriTrace Device" });
         }
       }
-    );
+    ).catch((err) => {
+      this._isScanning = false;
+      onError?.(err);
+    });
     return true;
   }
 

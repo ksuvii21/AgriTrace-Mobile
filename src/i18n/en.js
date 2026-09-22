@@ -92,6 +92,12 @@ export default {
   device_shipment_label: "Shipment",
   device_battery_label: "Battery",
   device_last_seen_label: "Last seen",
+  device_info_cloud_status: "Cloud Status",
+  device_info_ble: "BLE",
+  device_ble_ready_for_setup: "Ready for setup",
+  device_ble_connected: "Connected",
+  device_offline_ble_note: "Offline means the cloud has not recently heard from this device. Wi-Fi can still be configured over BLE.",
+  device_configure_wifi_button: "Configure Wi-Fi",
 
   // Device details screen
   device_details_title: "Device Details",

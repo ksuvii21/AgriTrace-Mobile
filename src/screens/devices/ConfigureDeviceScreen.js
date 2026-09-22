@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLanguage } from "../../context/LanguageContext";
 import COLORS from "../../constants/colors";
 import TopBar from "../../components/common/TopBar";
 import Button from "../../components/common/Button";
@@ -63,6 +64,7 @@ const BLE_CONNECTED_HOLD = 900;
 
 export default function ConfigureDeviceScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const changeWifi = route.params?.changeWifi ?? false;
 
   const [step, setStep] = useState(STEP.PERMISSIONS);
@@ -105,6 +107,13 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
   /* ──── Helpers ──── */
   const stepIndex = (s) => STEP_ORDER.indexOf(s);
   const stepAtLeast = (s) => stepIndex(step) >= stepIndex(s);
+  const isBleConnected = stepIndex(step) >= stepIndex(STEP.CONNECTED_BLE);
+  const bleStatus =
+    step === STEP.CONNECTING_BLE
+      ? "Connecting"
+      : isBleConnected
+        ? t("device_ble_connected")
+        : t("device_ble_ready_for_setup");
 
   /* ──── Error helper ──── */
   const setError = (msg, type = ERROR_TYPE.GENERIC) => {
@@ -362,8 +371,22 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
     ];
     return (
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Set Up AgriTrace</Text>
-        <Text style={styles.headerSubtitle}>Connect your AgriTrace node to Wi-Fi</Text>
+        <View style={styles.headerTopRow}>
+          <View>
+            <Text style={styles.headerTitle}>Set Up AgriTrace</Text>
+            <Text style={styles.headerSubtitle}>Connect your AgriTrace node to Wi-Fi</Text>
+          </View>
+          <View style={styles.bleStatusPill}>
+            <Ionicons
+              name={isBleConnected ? "bluetooth-connected" : "bluetooth"}
+              size={14}
+              color={isBleConnected ? COLORS.success : COLORS.green}
+            />
+            <Text style={styles.bleStatusText}>
+              BLE: {bleStatus}
+            </Text>
+          </View>
+        </View>
         <View style={styles.progressRow}>
           {steps.map((s, i) => (
             <View key={s.label} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
@@ -763,6 +786,27 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: COLORS.muted,
     marginBottom: 12,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  bleStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: COLORS.greenLight,
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    flexShrink: 0,
+  },
+  bleStatusText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: COLORS.green,
   },
   progressRow: {
     flexDirection: "row",
