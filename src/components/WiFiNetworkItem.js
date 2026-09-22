@@ -3,29 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../constants/colors";
 
-/**
- * Returns a wifi icon name based on RSSI strength.
- */
-function getSignalIcon(rssi) {
-  if (!rssi) return "wifi";
-  if (rssi > -55) return "wifi";
-  if (rssi > -70) return "wifi";
-  return "wifi-outline";
-}
-
-/**
- * Returns a signal color based on RSSI.
- */
-function getSignalColor(rssi) {
-  if (!rssi) return COLORS.muted;
-  if (rssi > -55) return COLORS.success;
-  if (rssi > -70) return COLORS.warning;
-  return COLORS.critical;
+function signalInfo(rssi) {
+  if (!rssi) return { icon: "wifi-outline", color: COLORS.muted, label: "Unknown signal" };
+  if (rssi > -55) return { icon: "wifi", color: COLORS.success, label: "Strong signal" };
+  if (rssi > -70) return { icon: "wifi", color: COLORS.warning, label: "Good signal" };
+  return { icon: "wifi-outline", color: COLORS.critical, label: "Weak signal" };
 }
 
 export default function WiFiNetworkItem({ network, onPress, selected }) {
   const { ssid, rssi, secure } = network;
-  const signalColor = getSignalColor(rssi);
+  const { icon, color, label } = signalInfo(rssi);
 
   return (
     <TouchableOpacity
@@ -34,13 +21,11 @@ export default function WiFiNetworkItem({ network, onPress, selected }) {
       onPress={onPress}
     >
       <View style={[styles.iconWrap, { backgroundColor: selected ? COLORS.greenLight : COLORS.backgroundBlue }]}>
-        <Ionicons name={getSignalIcon(rssi)} size={20} color={selected ? COLORS.green : signalColor} />
+        <Ionicons name={icon} size={20} color={selected ? COLORS.green : color} />
       </View>
       <View style={styles.textWrap}>
         <Text style={styles.ssid} numberOfLines={1}>{ssid}</Text>
-        {rssi != null && (
-          <Text style={styles.meta}>{rssi} dBm · 2.4 GHz</Text>
-        )}
+        <Text style={[styles.meta, { color }]}>{label}</Text>
       </View>
       {secure && (
         <Ionicons name="lock-closed" size={14} color={COLORS.muted} style={{ marginRight: 6 }} />
@@ -85,7 +70,6 @@ const styles = StyleSheet.create({
   meta: {
     fontFamily: "Inter_400Regular",
     fontSize: 11,
-    color: COLORS.muted,
     marginTop: 2,
   },
 });
