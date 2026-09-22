@@ -15,6 +15,8 @@ const DEVICE_PREFIX = "AGRITRACE-";
 class BleService {
   constructor() {
     this.manager = new BleManager();
+    this._isScanning = false;
+    this._isConnecting = false;
   }
 
   /* ═══════════════════ PERMISSIONS ═══════════════════ */
@@ -52,15 +54,20 @@ class BleService {
   /**
    * Start scanning for AgriTrace devices.
    * Filters by BLE_SERVICE_UUID and AGRITRACE-* name prefix.
+   * Prevents duplicate concurrent scans.
    * @param {(device) => void} onDeviceFound
    * @param {(error) => void}  onError
+   * @returns {boolean} false if a scan is already in progress
    */
   scanForDevices(onDeviceFound, onError) {
+    if (this._isScanning) return false;
+    this._isScanning = true;
     this.manager.startDeviceScan(
       [BLE_SERVICE_UUID],
       { allowDuplicates: false },
       (error, device) => {
         if (error) {
+          this._isScanning = false;
           onError?.(error);
           return;
         }
@@ -69,20 +76,49 @@ class BleService {
         }
       }
     );
+    return true;
   }
 
   stopScan() {
     this.manager.stopDeviceScan();
+    this._isScanning = false;
+  }
+
+  get isScanning() {
+    return this._isScanning;
   }
 
   /* ═══════════════════ CONNECTION ═══════════════════ */
 
-  async connectToDevice(deviceId) {
+  async connectToDevice(deviceId, timeoutMs = 10000) {
+    if (this._isConnecting) return null;
+    this._isConnecting = true;
+    try {
+      const connected = await Promise.race([
+        this._doConnect(deviceId),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("BLE connection timed out")),
+            timeoutMs
+          )
+        ),
+      ]);
+      return connected;
+    } finally {
+      this._isConnecting = false;
+    }
+  }
+
+  async _doConnect(deviceId) {
     const device = await this.manager.connectToDevice(deviceId, {
       requestMTU: 512,
     });
     await device.discoverAllServicesAndCharacteristics();
     return device;
+  }
+
+  get isConnecting() {
+    return this._isConnecting;
   }
 
   async disconnectDevice(deviceId) {
@@ -94,6 +130,19 @@ class BleService {
     } catch (_) {
       /* swallow – may already be disconnected */
     }
+  }
+
+  async isBluetoothEnabled() {
+    try {
+      return await this.manager.isBluetoothEnabled();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  reset() {
+    this._isScanning = false;
+    this._isConnecting = false;
   }
 
   /* ═══════════════════ WRITE ═══════════════════ */

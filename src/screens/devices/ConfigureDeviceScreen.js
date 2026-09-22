@@ -19,7 +19,7 @@ import WiFiNetworkItem from "../../components/WiFiNetworkItem";
 import {
   bleService,
   BLE_SERVICE_UUID,
-  CMD_CHAR_UUID,
+  STATUS_CHAR_UUID,
 } from "../../services/bleService";
 
 /* ──────────── Step constants ──────────── */
@@ -62,6 +62,7 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
   const wifiTimer = useRef(null);
   const monitorSub = useRef(null);
   const isMounted = useRef(true);
+  const isProvisioning = useRef(false);
 
   /* ──── Lifecycle cleanup ──── */
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
     startFlow();
     return () => {
       isMounted.current = false;
+      isProvisioning.current = false;
       bleService.stopScan();
       clearTimeout(scanTimer.current);
       clearTimeout(wifiTimer.current);
@@ -88,10 +90,17 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
     setErrorMsg("");
     setStatusMsg("");
     monitorSub.current?.remove();
+    isProvisioning.current = false;
+    bleService.reset();
 
     const ok = await bleService.requestPermissions();
     if (!ok) {
       return setError("Bluetooth permissions are required to configure your device. Please enable them in Settings.");
+    }
+
+    const btEnabled = await bleService.isBluetoothEnabled();
+    if (!btEnabled) {
+      return setError("Bluetooth is disabled. Please turn on Bluetooth in your device settings and try again.");
     }
 
     startBleScan();
@@ -102,7 +111,7 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
     setStep(STEP.SCANNING_BLE);
     setFoundDevices([]);
 
-    bleService.scanForDevices(
+    if (!bleService.scanForDevices(
       (dev) => {
         if (!isMounted.current) return;
         setFoundDevices((prev) => {
@@ -114,7 +123,9 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
         if (!isMounted.current) return;
         setError(`Scan failed: ${err.message}`);
       }
-    );
+    )) {
+      return;
+    }
 
     /* Auto-stop after timeout */
     scanTimer.current = setTimeout(() => {
@@ -124,19 +135,25 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
 
   /* ──── Select & connect to a device ──── */
   const selectDevice = async (dev) => {
+    if (bleService.isConnecting) return;
     bleService.stopScan();
     clearTimeout(scanTimer.current);
     setDevice(dev);
     setStep(STEP.CONNECTING_BLE);
 
     try {
-      await bleService.connectToDevice(dev.id);
+      const connected = await bleService.connectToDevice(dev.id);
+      if (!connected) {
+        if (!isMounted.current) return;
+        setError(`Could not connect to ${dev.name}. Connection timed out.`);
+        return;
+      }
 
-      /* Monitor the command characteristic for status replies */
+      /* Monitor the status characteristic for status replies */
       monitorSub.current = bleService.monitorCharacteristic(
         dev.id,
         BLE_SERVICE_UUID,
-        CMD_CHAR_UUID,
+        STATUS_CHAR_UUID,
         handleDeviceMessage,
         (err) => {
           if (!isMounted.current) return;
@@ -157,6 +174,7 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
       }, WIFI_SCAN_TIMEOUT);
     } catch (err) {
       if (!isMounted.current) return;
+      bleService.disconnectDevice(dev.id);
       setError(`Could not connect to ${dev.name}.\n${err.message}`);
     }
   };
@@ -208,8 +226,14 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
 
   /* ──── Send credentials ──── */
   const startProvisioning = async () => {
+    if (isProvisioning.current) return;
+    isProvisioning.current = true;
+
     const ssid = selectedNetwork?.ssid || manualSsid;
-    if (!ssid) return;
+    if (!ssid) {
+      isProvisioning.current = false;
+      return;
+    }
 
     setStep(STEP.PROVISIONING);
     setStatusMsg("Sending credentials to device…");
@@ -219,6 +243,7 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
       setStatusMsg("Credentials sent. Waiting for device to connect…");
     } catch (err) {
       if (!isMounted.current) return;
+      isProvisioning.current = false;
       setError(`Failed to send credentials: ${err.message}`);
     }
   };
