@@ -33,13 +33,17 @@ import * as vibrationService from "../services/vibrationService";
 import * as alertService from "../services/alertService";
 import {
   addNotificationResponseListener,
+  addNotificationReceivedListener,
   configureNotificationHandler,
-  getInitialNotificationAlertId,
+  getInitialNotificationTarget,
+  getAlertTargetFromResponse,
   setupCriticalNotificationChannel,
   requestNotificationPermission,
+  getPushRegistration,
   showCriticalGasNotification,
   dismissCriticalNotification,
 } from "../services/notifications";
+import { registerPushToken, unregisterPushToken } from "../api/deviceApi";
 import { ALERT_STATUS } from "../services/alertService";
 
 export const AlertContext = createContext(null);
@@ -54,6 +58,10 @@ export function AlertProvider({ children, currentUser = null, navigationRef = nu
   // Prevents re-entrant escalation when several telemetry frames land
   // in the same tick (duplicate MQTT bursts).
   const escalatingRef = useRef(false);
+
+  // Holds the latest alert-opening callback so the notification-tap
+  // effect (registered earlier) can call it without stale closures.
+  const openCriticalFromTargetRef = useRef(null);
 
   /* ---------------- history hydration ---------------- */
 
@@ -232,20 +240,152 @@ export function AlertProvider({ children, currentUser = null, navigationRef = nu
 
   // Notification tap → open the exact alert.
   useEffect(() => {
-    const goToAlert = (alertId) => {
-      if (!alertId || !navigationRef?.isReady?.()) return;
-      navigationRef.navigate("AlertDetails", { alertId });
+    const goToAlert = (alertId, response) => {
+      // Prefer the full deep-link target (alertId + deviceId + shipmentId)
+      // and route to the dedicated CriticalAlertScreen.
+      const target = response ? getAlertTargetFromResponse(response) : { alertId };
+      if (!target?.alertId) return;
+
+      // Raise the alert locally so the global overlay appears even if the
+      // navigator is not ready yet (e.g. cold start).
+      openCriticalFromTargetRef.current?.(target);
+
+      if (!navigationRef?.isReady?.()) return;
+      navigationRef.navigate("CriticalAlert", {
+        alertId: target.alertId,
+        deviceId: target.deviceId,
+        shipmentId: target.shipmentId,
+      });
     };
 
     const unsubscribe = addNotificationResponseListener(goToAlert);
 
-    // Cold start from a notification.
-    getInitialNotificationAlertId().then((alertId) => {
-      if (alertId) goToAlert(alertId);
-    });
-
     return unsubscribe;
   }, [navigationRef]);
+
+  /**
+   * Load the REAL alert from the backend and raise the critical screen.
+   * Used both for foreground push events and for notification taps that
+   * deep-link straight to CriticalAlertScreen with alertId/deviceId/
+   * shipmentId.
+   */
+  const openCriticalFromTarget = useCallback(
+    async (target = {}) => {
+      const { alertId, deviceId, shipmentId } = target || {};
+      if (!alertId) return null;
+
+      // 1. Try the backend (source of truth).
+      let alert = null;
+      try {
+        alert = await alertService.fetchAlertFromBackend(alertId);
+        await refreshHistory();
+      } catch (error) {
+        if (__DEV__) {
+          console.warn("[alertContext] backend fetch failed:", error?.message);
+        }
+      }
+
+      // 2. Fall back to a local record, then to the push payload.
+      if (!alert) alert = await alertService.getAlertById(alertId);
+      if (!alert) {
+        alert = {
+          id: alertId,
+          alertId,
+          severity: "CRITICAL",
+          title: "Critical Gas Level",
+          deviceId: deviceId || null,
+          shipmentId: shipmentId || null,
+          status: ALERT_STATUS.ACTIVE,
+          occurredAt: new Date().toISOString(),
+        };
+      }
+
+      // 3. Only escalate genuinely ACTIVE alerts (never re-alarm an
+      //    already-acknowledged one).
+      if (alert.status !== ALERT_STATUS.ACTIVE) {
+        refreshHistory();
+        return alert;
+      }
+
+      await raiseCriticalAlert(alert);
+      return alert;
+    },
+    [raiseCriticalAlert, refreshHistory]
+  );
+
+  // Keep the ref pointed at the current implementation for early effects.
+  useEffect(() => {
+    openCriticalFromTargetRef.current = openCriticalFromTarget;
+  }, [openCriticalFromTarget]);
+
+  // FOREGROUND critical push → raise the emergency UI immediately,
+  // regardless of which normal screen the user is on.
+  useEffect(() => {
+    const unsubscribe = addNotificationReceivedListener((data) => {
+      openCriticalFromTarget(data);
+    });
+    return unsubscribe;
+  }, [openCriticalFromTarget]);
+
+  // Cold start straight from a push (app was closed) → deep-link.
+  useEffect(() => {
+    const target = getInitialNotificationTarget();
+    if (target?.alertId) {
+      // Defer until the container is ready.
+      const timer = setTimeout(() => openCriticalFromTarget(target), 600);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [openCriticalFromTarget]);
+
+  /* ---------------- push token registration ---------------- */
+
+  /**
+   * Register this device's push token with the EXISTING backend so the
+   * backend can deliver high-priority critical alerts when the app is
+   * closed / backgrounded / the phone is locked.
+   */
+  const registerForPush = useCallback(async () => {
+    try {
+      const reg = await getPushRegistration();
+      if (!reg?.granted) return null;
+
+      const token = reg.expoPushToken || reg.devicePushToken;
+      if (!token) return null;
+
+      await registerPushToken({
+        token,
+        expoPushToken: reg.expoPushToken,
+        devicePushToken: reg.devicePushToken,
+        platform: reg.platform,
+      });
+
+      return token;
+    } catch (error) {
+      if (__DEV__) {
+        console.warn("[alertContext] push registration failed:", error?.message);
+      }
+      return null;
+    }
+  }, []);
+
+  // Register whenever a user is signed in; unregister on sign-out.
+  useEffect(() => {
+    if (!currentUser) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      const token = await registerForPush();
+      if (cancelled && token) {
+        await unregisterPushToken(token);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, registerForPush]);
 
   // Logout / user switch must never leave an alarm running.
   useEffect(() => {
@@ -265,10 +405,34 @@ export function AlertProvider({ children, currentUser = null, navigationRef = nu
 
   /* ---------------- development helper ---------------- */
 
+  /**
+   * DEV ONLY. Ask the EXISTING backend to run a synthetic critical reading
+   * through the real pipeline (MQTT-consumer-equivalent), so the SAME
+   * alert-creation + push flow is exercised without raising physical gas.
+   *
+   * Falls back to the local alert engine when the backend endpoint is not
+   * available yet.
+   */
   const triggerTestCriticalAlert = useCallback(
-    async ({ deviceId = "AGRITRACE-001", gasLevel = 1520, shipmentId = null } = {}) => {
+    async ({ deviceId = "AGRITRACE-001", gasLevel = 4127, shipmentId = null } = {}) => {
       if (!__DEV__) return null;
 
+      try {
+        const { triggerTestCriticalAlert: triggerApi } = await import(
+          "../api/alertApi"
+        );
+        const result = await triggerApi({ deviceId, gasLevel });
+        return { action: result?.alertAction || "created", backend: result };
+      } catch (error) {
+        if (__DEV__) {
+          console.warn(
+            "[alertContext] backend test trigger unavailable, using local engine:",
+            error?.message
+          );
+        }
+      }
+
+      // Local fallback so the dev button still demonstrates the flow.
       const telemetry = {
         deviceId,
         gasLevel,
@@ -294,6 +458,8 @@ export function AlertProvider({ children, currentUser = null, navigationRef = nu
       vibrationEnabled,
       processTelemetry,
       raiseCriticalAlert,
+      openCriticalFromTarget,
+      registerForPush,
       acknowledgeActiveAlert,
       acknowledgeById,
       setSoundEnabled,
@@ -309,6 +475,8 @@ export function AlertProvider({ children, currentUser = null, navigationRef = nu
       vibrationEnabled,
       processTelemetry,
       raiseCriticalAlert,
+      openCriticalFromTarget,
+      registerForPush,
       acknowledgeActiveAlert,
       acknowledgeById,
       setSoundEnabled,

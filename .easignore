@@ -1,0 +1,75 @@
+Continue upgrading my existing AgriTrace system without breaking the working MQTT, telemetry, GPS, shipment assignment, alerts, WebSocket, hashing, or checkpoint functionality.
+
+Implement these next features:
+
+1. **Offline-First microSD Telemetry Queue**
+
+   * Every telemetry reading should be safely queued locally on the ESP32/microSD when MQTT/internet is unavailable.
+   * Preserve the original sequence number, sensor values, GPS data and capture timestamp.
+   * Clearly distinguish live readings from readings uploaded later from SD.
+
+2. **Automatic Reconnection & Backlog Synchronization**
+
+   * When MQTT reconnects, automatically upload pending SD readings in sequence order.
+   * Do not overwrite their original capture timestamps.
+   * Prevent duplicate MongoDB records using `deviceId + sequenceNumber`.
+   * New live telemetry must continue working normally.
+
+3. **ACK-Based Safe Deletion**
+
+   * Use the existing MQTT ACK system.
+   * Never delete an offline SD record merely because it was published.
+   * Delete/mark it completed only after receiving a successful backend ACK for the same `deviceId + sequenceNumber`.
+   * A duplicate ACK should also count as safely stored because the backend already has that reading.
+   * If ACK is not received, keep the record and retry later.
+   * Make the mechanism resilient to ESP32 restart/power failure.
+
+4. **Synchronization Metadata**
+   Add useful metadata such as:
+
+   * `capturedAt`
+   * `receivedAt`
+   * `ingestionSource: "MQTT"`
+   * `transmission.source: "LIVE" | "SD_SYNC"`
+   * `transmission.storedOffline`
+   * `transmission.syncStatus`
+   * `transmission.syncedAt`
+   * optional offline duration
+
+   Maintain backward compatibility with existing telemetry.
+
+5. **Telemetry Integrity**
+
+   * Preserve the existing SHA-256 telemetry hashing and checkpoint system.
+   * Strengthen integrity using sequence continuity and/or previous-reading hash chaining where appropriate.
+   * Do not pretend a normal database hash is blockchain.
+   * Ensure verification can detect modified telemetry.
+   * Keep periodic shipment checkpoints compatible with the existing blockchain/checkpoint service.
+
+6. **Device/Sync Health**
+   Track useful device information such as:
+
+   * last sequence received
+   * last successful synchronization
+   * pending offline records if reported by firmware
+   * connectivity state
+   * MQTT status
+   * SD status
+   * firmware version
+
+The final flow should be:
+
+ESP32 sensors → create reading → microSD safety queue → MQTT when available → backend validation → shipment association → MongoDB → integrity processing → ACK → ESP32 safely clears acknowledged SD record.
+
+Do not create fake data or replace existing working architecture unnecessarily.
+
+After implementation provide:
+
+* files changed/created,
+* firmware changes required,
+* backend changes,
+* example live telemetry payload,
+* example SD-synchronized payload,
+* final MongoDB document,
+* explanation of ACK/retry behavior,
+* exact test procedure for turning Wi-Fi off, collecting readings, restoring Wi-Fi, synchronizing the backlog, preventing duplicates, and verifying integrity.

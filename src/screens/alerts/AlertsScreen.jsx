@@ -96,8 +96,10 @@ export default function AlertsScreen({navigation}) {
   };
 
   const test=async()=>{
-    const result=await triggerTestCriticalAlert({deviceId:"AGRITRACE-001",gasLevel:1520});
-    if(result?.action==="opened")await load();
+    const result=await triggerTestCriticalAlert({deviceId:"AGRITRACE-001",gasLevel:4127});
+    // Backend path returns { action: "created"|"refreshed"|"skipped_cooldown" };
+    // the local fallback returns { action: "opened" }.
+    if(result?.action)await load();
   };
 
   const filterLabels={all:"alerts_filter_all",Critical:"alerts_filter_critical",Warning:"alerts_filter_warning",Device:"alerts_filter_device",Resolved:"alerts_filter_resolved"};

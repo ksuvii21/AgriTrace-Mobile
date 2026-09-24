@@ -139,7 +139,16 @@ export default {
   sensor_battery: "Battery",
   sensor_status_safe: "SAFE",
   sensor_status_warning: "WARNING",
+  sensor_status_critical: "CRITICAL",
   sensor_status_good: "GOOD",
+  sensor_gas_raw: "Gas (RAW)",
+  /*
+   * Telemetry in Shipment Details. These strings deliberately say "RAW"
+   * and never claim a validated ethylene ppm concentration.
+   */
+  shipment_telemetry_title: "Live Telemetry",
+  shipment_telemetry_empty: "No telemetry readings received from the backend for this shipment yet.",
+  shipment_telemetry_error: "Unable to load shipment telemetry:",
   shipment_sync_device: "Device",
   shipment_sync_not_assigned: "Not assigned",
   shipment_sync_tracking_id: "Tracking ID",
@@ -359,6 +368,7 @@ export default {
     critical_alert_timestamp: "Timestamp",
     critical_alert_message: "Gas level has exceeded the configured critical threshold. This may indicate increased spoilage risk. Inspect the shipment and storage conditions immediately.",
     critical_alert_view_details: "View Details",
+    critical_alert_view_shipment: "VIEW SHIPMENT",
     critical_alert_acknowledge: "ACKNOWLEDGE ALERT",
     critical_alert_acknowledging: "ACKNOWLEDGING...",
     critical_alert_notify_team: "Notify Team",

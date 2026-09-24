@@ -19,8 +19,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 
-import { acknowledgeAlert as acknowledgeAlertApi } from "../api/alertApi";
+import { acknowledgeAlert as acknowledgeAlertApi, getAlert as getAlertApi, getAlerts as getAlertsApi } from "../api/alertApi";
 import { STORAGE_KEYS } from "./storage";
+import { normalizeBackendAlert } from "../utils/apiMappers";
 import {
   gasSeverity,
   ALERT_SEVERITY,
@@ -115,6 +116,48 @@ export async function getAlertHistory() {
 export async function getAlertById(alertId) {
   await hydrate();
   return alertHistory.find((a) => a.id === alertId) || null;
+}
+
+/**
+ * Fetch an alert from the BACKEND (single source of truth) and map it
+ * into the canonical UI shape. Used by CriticalAlertScreen when a push
+ * deep-links to us and we don't have the alert locally yet.
+ *
+ * Returns the canonical alert, or null when the backend does not have it.
+ */
+export async function fetchAlertFromBackend(alertId) {
+  if (!alertId) return null;
+
+  const raw = await getAlertApi(alertId);
+  const canonical = normalizeBackendAlert(raw);
+  if (!canonical?.id) return null;
+
+  // Cache it locally so the screen and history work offline afterwards.
+  await hydrate();
+  const existingIndex = alertHistory.findIndex((a) => a.id === canonical.id);
+  if (existingIndex >= 0) {
+    // Preserve any local acknowledgement state that the backend hasn't
+    // reflected yet (offline-first).
+    const local = alertHistory[existingIndex];
+    alertHistory[existingIndex] = {
+      ...canonical,
+      status: local.pendingAcknowledgement ? local.status : canonical.status,
+      acknowledgedBy: local.acknowledgedBy || canonical.acknowledgedBy,
+      acknowledgedAt: local.acknowledgedAt || canonical.acknowledgedAt,
+    };
+  } else {
+    alertHistory = [canonical, ...alertHistory].slice(0, HISTORY_LIMIT);
+  }
+  await persist();
+
+  return alertHistory.find((a) => a.id === canonical.id) || canonical;
+}
+
+/** Fetches the backend alert feed (for the Alerts list screen). */
+export async function fetchAlertsFromBackend(filters = {}) {
+  const result = await getAlertsApi(filters);
+  const list = Array.isArray(result?.alerts) ? result.alerts : Array.isArray(result) ? result : [];
+  return list.map(normalizeBackendAlert).filter((a) => a && a.id);
 }
 
 /** Clears local alert state on logout. */
@@ -335,7 +378,7 @@ export async function acknowledgeAlert(alert, { acknowledgedBy = null } = {}) {
 
   if (online) {
     try {
-      await acknowledgeAlertApi(alert.id);
+      await acknowledgeAlertApi(alert.id, { acknowledgedBy });
       await markAcknowledgedLocally(alert.id, {
         acknowledgedBy,
         pending: false,
@@ -382,7 +425,7 @@ export async function syncPendingAcknowledgements() {
 
   for (const item of queue) {
     try {
-      await acknowledgeAlertApi(item.alertId);
+      await acknowledgeAlertApi(item.alertId, { acknowledgedBy: item.acknowledgedBy });
       await markAcknowledgedLocally(item.alertId, {
         acknowledgedBy: item.acknowledgedBy,
         pending: false,
@@ -410,6 +453,8 @@ export default {
   ingestTelemetry,
   getAlertHistory,
   getAlertById,
+  fetchAlertFromBackend,
+  fetchAlertsFromBackend,
   markAcknowledgedLocally,
   acknowledgeAlert,
   syncPendingAcknowledgements,

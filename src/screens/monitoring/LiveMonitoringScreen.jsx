@@ -23,10 +23,15 @@ export default function LiveMonitoringScreen({navigation,route}) {
     let mounted=true;
     (async()=>{
       try{
-        const [latest,hist]=await Promise.all([getLatestTelemetryByShipment(shipmentId),getTelemetryHistoryByShipment(shipmentId,{limit:20})]);
-        if(!mounted)return;setCurrent(latest);setHistory([...(hist||[])].reverse());
-        // Feed the latest REST sample into the critical-alert engine.
-        processTelemetry(latest);
+        const [latestList,hist]=await Promise.all([getLatestTelemetryByShipment(shipmentId),getTelemetryHistoryByShipment(shipmentId,{limit:20})]);
+        if(!mounted)return;
+        // `getLatestTelemetryByShipment` returns one sample per assigned
+        // device; use the newest as the headline reading and feed each
+        // real sample into the critical-alert engine.
+        const samples=[...(latestList||[])];
+        const latest=samples.length?samples.slice().sort((a,b)=>new Date(b.recordedAt||b.timestamp||0).getTime()-new Date(a.recordedAt||a.timestamp||0).getTime())[0]:null;
+        setCurrent(latest);setHistory([...(hist||[])].reverse());
+        samples.forEach(sample=>{ if(sample) processTelemetry(sample); });
         const ws=await createAuthenticatedSocket({
           onOpen:(_,socket)=>{if(!mounted)return;setConnected(true);subscribeToShipment(socket,shipmentId)},
           onMessage:(event)=>{if(!mounted)return;if(event.type==="telemetry.updated"&&event.data?.shipmentId===shipmentId){setCurrent(event.data);setHistory(prev=>[...prev.slice(-19),event.data]);processTelemetry(event.data)}},

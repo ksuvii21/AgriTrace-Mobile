@@ -15,11 +15,35 @@
  * import from here so a single edit re-tunes the whole app.
  */
 
+/**
+ * DIAGNOSTIC / DISPLAY thresholds.
+ *
+ * The BACKEND is the single source of truth for whether a reading is
+ * CRITICAL — it evaluates MQTT telemetry against its own
+ * `CRITICAL_GAS_THRESHOLD` and is the ONLY thing that creates alerts.
+ *
+ * The mobile app uses this block purely to COLOUR a reading that the
+ * backend already told us about (e.g. a shipment telemetry card going
+ * red), and as an offline fallback for locally-observed WebSocket
+ * telemetry. Keep `CRITICAL_MIN` aligned with the backend env var so a
+ * reading never looks "safe" on screen while the backend has already
+ * raised a critical alert for it.
+ *
+ * Override at build time with EXPO_PUBLIC_CRITICAL_GAS_THRESHOLD=1500.
+ */
+const _criticalMin = Number(
+  process.env.EXPO_PUBLIC_CRITICAL_GAS_THRESHOLD
+);
+
+export const CRITICAL_GAS_THRESHOLD = Number.isFinite(_criticalMin)
+  ? _criticalMin
+  : 1500;
+
 export const GAS_THRESHOLDS = {
   NORMAL_MAX: 500, // 0    – 500  → NORMAL
   CAUTION_MAX: 1000, // 501  – 1000 → CAUTION
-  WARNING_MAX: 1500, // 1001 – 1500 → WARNING
-  CRITICAL_MIN: 1501, // 1501+       → CRITICAL
+  WARNING_MAX: CRITICAL_GAS_THRESHOLD - 1, // WARNING band below critical
+  CRITICAL_MIN: CRITICAL_GAS_THRESHOLD, // >= this → CRITICAL
 };
 
 /**

@@ -35,6 +35,7 @@ import { ALERT_SEVERITY } from "../../constants/alertThresholds";
 import { formatDateTime } from "../../utils/dateUtils";
 import { useAlerts } from "../../context/AlertContext";
 import { useLanguage } from "../../context/LanguageContext";
+import { fetchAlertFromBackend } from "../../services/alertService";
 
 export default function CriticalAlertScreen({ navigation, route }) {
   const { t } = useLanguage();
@@ -49,7 +50,33 @@ export default function CriticalAlertScreen({ navigation, route }) {
 
   // Alert may arrive via route params (notification deep-link) or context.
   const routeAlert = route?.params?.alert || null;
-  const alert = activeAlert || routeAlert;
+  const routeAlertId = route?.params?.alertId || null;
+  const routeShipmentId = route?.params?.shipmentId || null;
+
+  const [loadedAlert, setLoadedAlert] = useState(routeAlert);
+  const alert = activeAlert || loadedAlert || routeAlert;
+
+  // When deep-linked with just an alertId, load the REAL alert from the
+  // backend (source of truth) so the screen never shows a stub.
+  useEffect(() => {
+    if (activeAlert || routeAlert || !routeAlertId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const real = await fetchAlertFromBackend(routeAlertId);
+        if (!cancelled && real) setLoadedAlert(real);
+      } catch (error) {
+        if (__DEV__) {
+          console.warn("[CriticalAlertScreen] load failed:", error?.message);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAlert, routeAlert, routeAlertId]);
 
   const [acknowledging, setAcknowledging] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
@@ -113,6 +140,9 @@ export default function CriticalAlertScreen({ navigation, route }) {
 
   if (!alert) return null;
 
+  // The shipment this alert belongs to (route param wins for deep-links).
+  const shipmentId = alert.shipmentId || routeShipmentId || null;
+
   const acknowledge = async () => {
     if (acknowledging) return;
 
@@ -142,6 +172,16 @@ export default function CriticalAlertScreen({ navigation, route }) {
       alertId: alert.id,
       alert,
     });
+  };
+
+  /** Requirement E: jump straight to the shipment this alert belongs to. */
+  const viewShipment = () => {
+    if (shipmentId) {
+      navigation.navigate("ShipmentDetails", { shipmentId });
+    } else if (alert.deviceId) {
+      // No shipment association — at least show the originating device.
+      navigation.navigate("DeviceDetails", { deviceId: alert.deviceId });
+    }
   };
 
   /**
@@ -317,6 +357,16 @@ export default function CriticalAlertScreen({ navigation, route }) {
                 ? t("critical_alert_acknowledging")
                 : t("critical_alert_acknowledge")}
             </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.ghostButton}
+            onPress={viewShipment}
+            accessibilityRole="button"
+            accessibilityLabel={t("critical_alert_view_shipment")}
+          >
+            <Ionicons name="cube-outline" size={17} color={COLORS.white} />
+            <Text style={styles.ghostText}>{t("critical_alert_view_shipment")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
