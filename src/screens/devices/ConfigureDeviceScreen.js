@@ -87,6 +87,10 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
   const connectedHoldTimer = useRef(null);
   const isMounted = useRef(true);
   const isProvisioning = useRef(false);
+  // Mirrors `device` so the unmount cleanup can read the CURRENT value.
+  // The cleanup closure below has no deps, so reading `device` directly would
+  // always see the initial null and never disconnect.
+  const connectedDevice = useRef(null);
 
   /* ──── Lifecycle cleanup ──── */
   useEffect(() => {
@@ -95,12 +99,14 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
     return () => {
       isMounted.current = false;
       isProvisioning.current = false;
-      bleService.stopScan();
       clearTimeout(scanTimer.current);
       clearTimeout(wifiTimer.current);
       clearTimeout(connectedHoldTimer.current);
       monitorSub.current?.remove();
-      if (device) bleService.disconnectDevice(device.id);
+      // Release the BLE link. bleService is a singleton, so if we leave this
+      // connection open the ESP32 keeps seeing an active central and stops
+      // advertising — later "Change Wi-Fi" scans then find no devices.
+      bleService.disconnectAll();
     };
   }, []);
 
@@ -137,7 +143,9 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
     setCredsSent(false);
     monitorSub.current?.remove();
     isProvisioning.current = false;
-    bleService.reset();
+    // Drop any link left over from a previous session before re-scanning.
+    await bleService.disconnectAll();
+    connectedDevice.current = null;
 
     const ok = await bleService.requestPermissions();
     if (!ok) {
@@ -197,6 +205,7 @@ export default function ConfigureDeviceScreen({ navigation, route }) {
     bleService.stopScan();
     clearTimeout(scanTimer.current);
     setDevice(dev);
+    connectedDevice.current = dev;
     setStep(STEP.CONNECTING_BLE);
 
     try {

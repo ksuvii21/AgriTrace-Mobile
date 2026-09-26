@@ -53,7 +53,9 @@ class BleService {
 
   /**
    * Start scanning for AgriTrace devices.
-   * Scan all advertisements and identify devices by service UUID, local name, or device name.
+   * Filters in hardware by BLE_SERVICE_UUID, then also accepts devices that
+   * advertise the AGRITRACE- name prefix (some firmware does not include the
+   * service UUID in the advertisement packet).
    * Prevents duplicate concurrent scans.
    * @param {(device) => void} onDeviceFound
    * @param {(error) => void}  onError
@@ -63,7 +65,7 @@ class BleService {
     if (this._isScanning) return false;
     this._isScanning = true;
     this.manager.startDeviceScan(
-      null,
+      [BLE_SERVICE_UUID],
       { allowDuplicates: false },
       (error, device) => {
         if (error) {
@@ -115,6 +117,12 @@ class BleService {
         ),
       ]);
       return connected;
+    } catch (err) {
+      // The underlying connect may still succeed after the race rejected.
+      // Tear it down so we never leak a zombie connection that would stop
+      // the peripheral from advertising again.
+      await this.disconnectDevice(deviceId);
+      throw err;
     } finally {
       this._isConnecting = false;
     }
@@ -154,6 +162,26 @@ class BleService {
   reset() {
     this._isScanning = false;
     this._isConnecting = false;
+  }
+
+  /**
+   * Disconnect every device currently held by the manager and clear state.
+   * Must be called when leaving the provisioning screen: this service is a
+   * module-level singleton, so otherwise the BLE link survives unmount and the
+   * peripheral stops advertising, making later scans find nothing.
+   */
+  async disconnectAll() {
+    this.stopScan();
+    let connected = [];
+    try {
+      connected = await this.manager.connectedDevices([BLE_SERVICE_UUID]);
+    } catch (_) {
+      connected = [];
+    }
+    await Promise.all(
+      (connected || []).map((id) => this.disconnectDevice(id))
+    );
+    this.reset();
   }
 
   /* ═══════════════════ WRITE ═══════════════════ */
